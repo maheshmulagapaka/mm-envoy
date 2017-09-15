@@ -432,7 +432,8 @@
                       //console.log(vm.gridApi.core.getVisibleRows(vm.gridApi.grid));
                       vm.totalNetworkCount = totalNetworkCount - deletingIds.contact_ids.length;
                       totalNetworkCount = vm.totalNetworkCount;
-                      if(totalNetworkCount == 0)
+                      /*If all the contacts are deleted in current page it calls for the rest of the contacts.*/
+                      if(vm.gridApi.grid.renderContainers.body.renderedRows.length == 0)
                         resetToFirstIndex();
                       })
                     }
