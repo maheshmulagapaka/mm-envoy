@@ -50,12 +50,17 @@
         vm.showClusterFilter = false;
         vm.disableYes = false;
 
+        vm.allSlct = false;
+        vm.trackOfSelected = trackOfSelected;
         var currentlySelectedContacts = [];
         var totalNetworkCount = 0;
         var enableOverView = false;
+        var selectAllContacts = false;
+       
+
         var type = 'both',
             index = 0,
-            limit = localStorage.getItem('Overview_pagination_limit') != null ? parseInt(localStorage.getItem('Overview_pagination_limit')) : 25,          
+            limit = localStorage.getItem('Overview_pagination_limit') ? parseInt(localStorage.getItem('Overview_pagination_limit')) : 25,
             selectedCompany = "",
             contactsBusy = false,
             paginationOptions = {
@@ -67,7 +72,7 @@
             sortOrder = ["first_name asc", "last_name asc", "title asc", "email asc", "company_name asc", "country asc"];
 
 
-            vm.tarckOfSelected = tarckOfSelected;
+      
         /*
          * Clearing the query Parameters on changing the route
          */
@@ -80,8 +85,8 @@
             }
         });
 
-        $rootScope.$on('backToValutContacts',function(event, next, current){
-            if(!enableOverView) return;
+        $rootScope.$on('backToValutContacts', function(event, next, current) {
+            if (!enableOverView) return;
             backToContacts();
         })
 
@@ -99,7 +104,6 @@
                 return;
             }
             contactsBusy = true;
-            console.log(limit,'limit')
             /* 
              * To load contacts from specified index from outside
              */
@@ -112,10 +116,10 @@
             }
             var selectedCluster = [];
             vm.loading = true;
-            if(vm.cluster.length>0){
+            if (vm.cluster.length > 0) {
                 selectedCluster = [{
-                    'name' : vm.cluster[0].name,
-                    'network_id' : vm.cluster[0].network_id
+                    'name': vm.cluster[0].name,
+                    'network_id': vm.cluster[0].network_id
                 }];
             }
             contactService.getAllContacts(type, sortOrder, index, limit, vm.searchParams, selectedCluster)
@@ -147,7 +151,10 @@
                                     }
                                 }
                                 vm.totalNetworkCount = reply.total_network_count || 0;
-                                //The totalNetworkCount variable is to save the total count and will be used to change the total count value in view while deleting the contacts.
+                                /**
+                                 *The totalNetworkCount variable is to save the total count and will be used to change 
+                                 *the total count value in view while deleting the contacts. 
+                                 */
                                 totalNetworkCount = vm.totalNetworkCount;
                                 vm.cluster_count = reply.count;
                             }
@@ -159,18 +166,32 @@
                                  * This function checks weather previously any contact selected on the page by looping through the currentlySelectedContacts array which containg all the selected 
                                  * contacts.on matching of the contacts it selects the check box of the corresponding row.
                                  */
-                                $timeout(function(){
-                                    if(currentlySelectedContacts.length != 0){
-                                        _.each(vm.gridOptions.data,function(contact,index){
-                                            _.each(currentlySelectedContacts,function(seleCont){
-                                            if(contact.contact_id == seleCont.contact_id){
-                                                 //it makes the contact selected based on the index value.
-                                                 vm.gridApi.selection.selectRow(vm.gridOptions.data[index]);
-                                            }   
-                                        })
+                                $timeout(function() {
+                                    if (selectAllContacts) {
+                                        if (currentlySelectedContacts.length) {
+                                            vm.gridApi.selection.selectAllRows();
+                                            _.each(vm.gridOptions.data, function(contact, index) {
+                                                _.each(currentlySelectedContacts, function(seleCont) {
+                                                    if (contact.contact_id == seleCont.contact_id) {
+                                                        //it makes the contact unselected based on the index value.
+                                                        vm.gridApi.selection.unSelectRow(vm.gridOptions.data[index]);
+                                                    }
+                                                })
+                                            })
+                                        } else {
+                                            vm.gridApi.selection.selectAllRows();
+                                        }
+                                    } else if (currentlySelectedContacts.length) {
+                                        _.each(vm.gridOptions.data, function(contact, index) {
+                                            _.each(currentlySelectedContacts, function(seleCont) {
+                                                if (contact.contact_id == seleCont.contact_id) {
+                                                    //it makes the contact selected based on the index value.
+                                                    vm.gridApi.selection.selectRow(vm.gridOptions.data[index]);
+                                                }
+                                            })
                                         })
                                     }
-                                });       
+                                });
                             } else {
                                 if (index == 0) vm.contacts = reply.result
                                 else vm.contacts = vm.contacts.concat(reply.result);
@@ -189,10 +210,10 @@
                         vm.loading = false;
                     });
         }
-        
+
         /*to hide coachmark*/
         function hideCoachMark() {
-           vm.filterCoachMark = false;
+            vm.filterCoachMark = false;
         };
         /*coach mark*/
         function gotIt(id) {
@@ -210,7 +231,7 @@
 
         function editGridContact(entity) {
 
-            if(!entity || (entity.is_contact == '1') && (entity.source == '3')){
+            if (!entity || (entity.is_contact == '1') && (entity.source == '3')) {
                 return;
             }
 
@@ -253,67 +274,80 @@
 
                 relationshipsData.setKeyValue("edit-modal", modalInstance);
                 modalInstance.result.then(function(contact) {
-                    // console.log(vm.gridOptions.data[indexofSelectedCon],'vm.gridOptions.data[index]');
-                    // console.log(contact,'contact');
-                   // vm.gridOptions.data[index] = contact;	
-                   // reloadCurrentIndex();
-                   /**
-                    * The immediat changes of the contact will be reflected in grid view.
-                    */
-                   var cntct = vm.gridOptions.data[indexofSelectedCon];
-                   if(contact.last_name)
-                    cntct.last_name = contact.last_name;
+                    /**
+                     * The immediate changes of the contact will be reflected in grid view.
+                     */
+                    var cntct = vm.gridOptions.data[indexofSelectedCon];
+                    if (contact.last_name)
+                        cntct.last_name = contact.last_name;
 
-                   if(contact.first_name)
-                    cntct.first_name = contact.first_name;
+                    if (contact.first_name)
+                        cntct.first_name = contact.first_name;
 
-                   if(contact.company_name.length != 0){
-                      var company =  _.findWhere(contact.company_name,{order:1})
-                      cntct.company_name = company.company_name;
-                      cntct.title = company.title;
-                   }
+                    if (contact.company_name.length) {
+                        var company = _.findWhere(contact.company_name, {
+                            order: 1
+                        })
+                        cntct.company_name = company.company_name;
+                        cntct.title = company.title;
+                    }
 
-                   if(contact.address.length != 0)
-                    cntct.country = contact.address[0].country_name;
+                    if (contact.address.length)
+                        cntct.country = contact.address[0].country_name;
 
-                    if(contact.preferred_email)
-                    cntct.email = contact.preferred_email;
-
+                    if (contact.preferred_email)
+                        cntct.email = contact.preferred_email;
+                    else if (angular.isDefined(contact.company_name[0]))
+                        cntct.email = angular.isDefined(contact.company_name[0]) ? contact.company_name[0].company_email[0].address : "";
                 }, function() {});
             }
         }
 
-        function tarckOfSelected(entity){
-           // console.log(entity)
-           // console.log(vm.gridApi.selection.getSelectedRows(),'selected')
-          //  vm.gridApi.selection.selectRow(vm.gridOptions.data[1]);
+        /**
+         * This function will be called on every selection of row and push or pop  the data to "currentlySelectedContacts"
+         * if the call is from header row it selects all the row and enables "selectAllContacts" flag which will be used while 
+         * making api call.
+         */
+        function trackOfSelected(entity) {
+            if (entity == 'selectAll') {
+                /**Though the selectAllContacts is true and again it has got the call in such case generally it deselects all data
+                 *but if "currentlySelectedContacts" has some data in it then it should again select all the data for that we are having "currentlySelectedContacts.length" as one of the conditions.      
+                 */
+                if (!selectAllContacts || currentlySelectedContacts.length) {
+                    vm.gridApi.selection.selectAllRows();
+                    vm.allSlct = true;
+                    selectAllContacts = true;
+                    currentlySelectedContacts = [];
+                } else {
+                    vm.gridApi.selection.clearSelectedRows();
+                    vm.allSlct = false;
+                    selectAllContacts = false;
+                }
+            } else {
+                vm.allSlct = false;
+                var found = _.findWhere(currentlySelectedContacts, {
+                    contact_id: entity.contact_id
+                });
+                if (found) {
+                    currentlySelectedContacts = currentlySelectedContacts.filter(cntct => entity.contact_id != cntct.contact_id);
+                } else
+                    currentlySelectedContacts.push(entity)
+                console.log(currentlySelectedContacts)
 
-        var found = _.findWhere(currentlySelectedContacts,{contact_id : entity.contact_id});
-
-        if(found != undefined){
-            for(var x=0;x<currentlySelectedContacts.length;x++){
-                if(entity.contact_id == currentlySelectedContacts[x].contact_id){
-                    currentlySelectedContacts.splice(x,1)
-                   x--;
-                }               
+                //If all the contacts of current page and no contacts in currentlySelectedContacts array then the headrow's checkbox will be selected
+                if (!currentlySelectedContacts.length && vm.gridApi.selection.getSelectedRows().length == vm.gridOptions.data.length)
+                    vm.allSlct = true;
             }
-        }            
-        else
-            currentlySelectedContacts.push(entity) 
-            console.log(currentlySelectedContacts)  
         }
-
-    
-
         /*
          * Open , mynetwork search modal
          */
         function searchMynetwork() {
-            
-            if(vm.cluster.length>0){
+
+            if (vm.cluster.length > 0) {
                 vm.searchParams.cluster = vm.cluster[0];
                 vm.searchParams.exact_search = 0;
-            } 
+            }
             relationshipsData.setVaultSearch(vm.searchParams);
             var modalInstance = $uibModal.open({
                 animation: true,
@@ -327,38 +361,38 @@
             });
             modalInstance.result.then(function(result) {
                 if (!_.isEmpty(result)) {
-                    enableOverView = true;  //This flag is to enable the on click functionality on overview tab.
+                    enableOverView = true; //This flag is to enable the on click functionality on overview tab to get back to normal after filtering.
                     vm.searchParams = result;
 
-                    if(vm.searchParams.cluster.name == "All"){
+                    if (vm.searchParams.cluster.name == "All") {
                         vm.cluster = [];
                         vm.searchParams.cluster = [];
                         vm.showAdd = true;
-                    } 
-                    if(vm.cluster.length>0 && vm.searchParams.cluster){
-                        if(vm.cluster[0].name != vm.searchParams.cluster.name){
+                    }
+                    if (vm.cluster.length > 0 && vm.searchParams.cluster) {
+                        if (vm.cluster[0].name != vm.searchParams.cluster.name) {
                             vm.cluster[0] = vm.searchParams.cluster;
                         }
                     }
-                    if(vm.cluster.length==0 && (!_.isEmpty(vm.searchParams.cluster))){
+                    if (vm.cluster.length == 0 && (!_.isEmpty(vm.searchParams.cluster))) {
                         vm.cluster[0] = vm.searchParams.cluster;
                     }
-                    if(!_.isEmpty(vm.searchParams.cluster)){
-                        if(vm.searchParams.cluster.name == 'My Connections' || vm.searchParams.cluster.name == 'Unassigned') vm.showAdd = true;
+                    if (!_.isEmpty(vm.searchParams.cluster)) {
+                        if (vm.searchParams.cluster.name == 'My Connections' || vm.searchParams.cluster.name == 'Unassigned') vm.showAdd = true;
                         else vm.showAdd = false;
                     }
                     vm.count = 0;
                     vm.searchedWord = null;
-                    vm.showClusterFilter=false;
+                    vm.showClusterFilter = false;
                     resetToFirstIndex();
-                }else{
+                } else {
                     vm.searchParams = {};
                     vm.cluster = [];
                     vm.showAdd = true;
                     relationshipsData.setVaultSearch(vm.searchParams);
                     vm.count = 0;
                     vm.searchedWord = null;
-                    vm.showClusterFilter=false;
+                    vm.showClusterFilter = false;
                     resetToFirstIndex();
                 }
             });
@@ -376,15 +410,20 @@
         }
 
         function backToVault() {
-            vm.cluster=[]; 
+            vm.cluster = [];
             vm.showAdd = true;
-            vm.showClusterFilter=false;
+            vm.showClusterFilter = false;
             resetToFirstIndex();
         }
         /*
          * Open , mynetwork delete modal
          */
         function openDeleteModal(contact) {
+            if (vm.allSlct && currentlySelectedContacts.length == 0) {
+                deleteAllContacts();
+                vm.alldlt = true;
+                return;
+            }
             vm.deleteContact = _.isEmpty(contact) ? currentlySelectedContacts : [contact];
             currentlySelectedContacts = [];
             vm.deleteModal = $uibModal.open({
@@ -407,14 +446,14 @@
             vm.deletingContacts = true;
 
 
-            var deletingContacts = vm.deleteContact.filter(function(contact){
+            var deletingContacts = vm.deleteContact.filter(function(contact) {
                 return contact.is_contact == '1';
             });
 
             var deletingIds = {
                 "contact_ids": _.pluck(deletingContacts, "contact_id")
             };
-            
+
             contactService.deleteSelectedContacts(deletingIds)
                 .then(function(reply) {
                     if (reply.code == 200) {
@@ -422,30 +461,31 @@
                         vm.deleteModal.close();
                         vm.deletingContacts = false;
                         vm.disableYes = false;
-                      //  reloadCurrentIndex();
-                     for(var x=0;x<deletingIds.contact_ids.length;x++){
-                        vm.gridOptions.data = _.without(vm.gridOptions.data,_.findWhere(vm.gridOptions.data,{contact_id : deletingIds.contact_ids[x]}));                        
-                      }
-                      vm.gridApi.selection.clearSelectedRows();
-                      $timeout(function(){                        
-                     vm.count = vm.gridApi.grid.renderContainers.body.renderedRows.length;
-                      //console.log(vm.gridApi.core.getVisibleRows(vm.gridApi.grid));
-                      vm.totalNetworkCount = totalNetworkCount - deletingIds.contact_ids.length;
-                      totalNetworkCount = vm.totalNetworkCount;
-                      /*If all the contacts are deleted in current page it calls for the rest of the contacts.*/
-                      if(vm.gridApi.grid.renderContainers.body.renderedRows.length == 0)
-                        resetToFirstIndex();
-                      })
+                        //  reloadCurrentIndex();
+                        for (var x = 0; x < deletingIds.contact_ids.length; x++) {
+                            vm.gridOptions.data = _.without(vm.gridOptions.data, _.findWhere(vm.gridOptions.data, {
+                                contact_id: deletingIds.contact_ids[x]
+                            }));
+                        }
+                        vm.gridApi.selection.clearSelectedRows();
+                        $timeout(function() {
+                            vm.count = vm.gridApi.grid.renderContainers.body.renderedRows.length;
+                            //console.log(vm.gridApi.core.getVisibleRows(vm.gridApi.grid));
+                            vm.totalNetworkCount = totalNetworkCount - deletingIds.contact_ids.length;
+                            totalNetworkCount = vm.totalNetworkCount;
+                            /*If all the contacts are deleted in current page it calls for the rest of the contacts.*/
+                            if (vm.gridApi.grid.renderContainers.body.renderedRows.length == 0)
+                                resetToFirstIndex();
+                        })
                     }
-                   
+
                 }, function(error) {
                     vm.disableYes = false;
                     if (error.code == 667 || error.code == 623) { /* Cannot delete connection updates */
                         // ActivityModal.errorPopup(error);
                         vm.deleteModal.close();
                         reloadCurrentIndex();
-                    }
-                    else{
+                    } else {
                         ActivityModal.errorPopup(error);
                     }
                     vm.deletingContacts = false;
@@ -472,7 +512,11 @@
          * return true if any contact selected
          */
         function isContactsSelected() {
-            return (currentlySelectedContacts.length ? true : false);
+            // return (currentlySelectedContacts.length ? true : false);
+            if (currentlySelectedContacts.length || vm.allSlct)
+                return true;
+            else
+                return false;
         }
 
         /* Switching between grid/tile view */
@@ -487,8 +531,8 @@
             if (view == 'grid') {
                 vm.gridOptions.paginationCurrentPage = 1;
                 vm.gridOptions.data = [];
-                limit = 25;
-                sortOrder = ["first_name asc", "last_name asc", "title asc", "email asc", "company_name asc", "country asc"];
+                limit = localStorage.getItem('Overview_pagination_limit') ? parseInt(localStorage.getItem('Overview_pagination_limit')) : 25,
+                    sortOrder = ["first_name asc", "last_name asc", "title asc", "email asc", "company_name asc", "country asc"];
                 getContacts();
             } else {
                 vm.contacts = [];
@@ -730,12 +774,15 @@
                 backdrop: 'static',
                 keyboard: false,
                 size: 'sm',
+                scope: $scope,
                 templateUrl: "app/relationships/delete-contacts.html",
                 controller: 'ModalController',
                 controllerAs: 'vmM',
-                windowClass: 'evy_confirm-post-delete_popup'
+                windowClass: 'evy_confirm-post-delete_popup',
+                bindToController: true
             });
             modalInstance.result.then(function(value) {
+                vm.alldlt = false;
                 if (value == "ok") {
                     resetToFirstIndex();
                 }
@@ -921,7 +968,7 @@
 
         }
 
-        function addToCluster(contact){
+        function addToCluster(contact) {
             vm.addContacts = _.isEmpty(contact) ? currentlySelectedContacts : [contact];
             networkData.set(false, '');
             networkData.setContacts(vm.addContacts);
@@ -931,17 +978,17 @@
                 keyboard: false,
                 size: 'md',
                 templateUrl: "app/network/add-to-network.html",
-                bindToController:true,
+                bindToController: true,
                 controller: "AddToNetworkController",
                 controllerAs: "vm"
             });
             vm.addToClusterModal.result.then(function(value) {
                 vm.gridApi.selection.clearSelectedRows();
                 currentlySelectedContacts = [];
-            }); 
+            });
         }
 
-        function manageClusters(){
+        function manageClusters() {
             var modalInstance = $uibModal.open({
                 animation: true,
                 backdrop: 'static',
@@ -949,40 +996,43 @@
                 size: "md",
                 templateUrl: "app/relationships/manage-cluster.html",
                 controller: "ManageNetworkController",
-                 windowClass   : 'evy_confirm-post-delete_popup evy_manage_cluster',
+                windowClass: 'evy_confirm-post-delete_popup evy_manage_cluster',
                 controllerAs: "vmMN",
-                bindToController:false
-            }); 
+                bindToController: false
+            });
         }
 
-        function removeFromCluster(contact){
-            var members = [];  
+        function removeFromCluster(contact) {
+            var members = [];
             var member_contact_array = [];
-           
+
             members = _.isEmpty(contact) ? vm.gridApi.selection.getSelectedRows() : [contact];
-            _.each(members, function(member){
-                member_contact_array.push({contact_id : member.contact_id, is_delete : '1'});
+            _.each(members, function(member) {
+                member_contact_array.push({
+                    contact_id: member.contact_id,
+                    is_delete: '1'
+                });
             })
             var ip_data = {};
 
             ip_data["member_contact_array"] = member_contact_array;
             networkService.deleteFromNetwork(ip_data, vm.cluster[0].network_id)
-                .then(function(reply){                       
-                    if(reply.data.code=="200"){
-                       vm.deleting = false; 
-                       reloadCurrentIndex();
-                       // $rootScope.$broadcast('removedFromNetwork',{userId:vm.member.user_id});
-                       // $modalInstance.close('member');
+                .then(function(reply) {
+                    if (reply.data.code == "200") {
+                        vm.deleting = false;
+                        reloadCurrentIndex();
+                        // $rootScope.$broadcast('removedFromNetwork',{userId:vm.member.user_id});
+                        // $modalInstance.close('member');
                     }
-                },function(err){
-                    
+                }, function(err) {
+
                 });
         }
 
         /*
          * Enabling offboard button
          */
-        function isOffboardable(){
+        function isOffboardable() {
 
             var selectedContacts = vm.gridApi.selection.getSelectedRows();
 
@@ -997,7 +1047,7 @@
         /*
          * offboard confirmation
          */
-        function offBoardSelected(){
+        function offBoardSelected() {
 
             vm.offboarding = false;
             vm.offboardModal = $uibModal.open({
@@ -1007,14 +1057,14 @@
                 size: "md",
                 scope: $scope,
                 windowClass: 'evy_modal_dialog',
-                template:   "<div class='modal-header'>" +
-                                "<h4 class='modal-title' id='myModalLabel'>Off-Board</h4>"+
-                            "</div>"+
-                            "<div class='modal-body evy_onboard_confirmation'>"+
-                                "<p> You have chosen to off-board the selected user(s). Any Prospect report created by user and any of the user's contacts included in any prospect reports will be removed. Please confirm action.</p>"+
-                                "<button ng-click='vmV.confirmOffboard()' ng-disabled='vmV.offboarding'>Ok <img ng-if='vmV.offboarding' class='evy_load_icon_sml' src='assets/images/ey_loading_new.gif'></button>" +
-                                "<button class='evy_onboard_confirmation_no' ng-click='vmV.offboardModal.dismiss()'>Cancel</button>" +
-                            "</div>",    
+                template: "<div class='modal-header'>" +
+                    "<h4 class='modal-title' id='myModalLabel'>Off-Board</h4>" +
+                    "</div>" +
+                    "<div class='modal-body evy_onboard_confirmation'>" +
+                    "<p> You have chosen to off-board the selected user(s). Any Prospect report created by user and any of the user's contacts included in any prospect reports will be removed. Please confirm action.</p>" +
+                    "<button ng-click='vmV.confirmOffboard()' ng-disabled='vmV.offboarding'>Ok <img ng-if='vmV.offboarding' class='evy_load_icon_sml' src='assets/images/ey_loading_new.gif'></button>" +
+                    "<button class='evy_onboard_confirmation_no' ng-click='vmV.offboardModal.dismiss()'>Cancel</button>" +
+                    "</div>",
                 bindToController: true
             });
         }
@@ -1054,13 +1104,13 @@
 
             /* 'startsWith' not supported in IE */
             vm.cluster = networkData.getFilteredCluster();
-            if(vm.cluster.length>0){
-                if(!vm.cluster[0].network_name) vm.cluster[0].network_name = vm.cluster[0].name;
+            if (vm.cluster.length > 0) {
+                if (!vm.cluster[0].network_name) vm.cluster[0].network_name = vm.cluster[0].name;
                 vm.showClusterFilter = true;
-                if(vm.cluster[0].default_network == '1' || vm.cluster[0].network_id == '0') vm.showAdd = true;
+                if (vm.cluster[0].default_network == '1' || vm.cluster[0].network_id == '0') vm.showAdd = true;
                 else vm.showAdd = false;
             }
-            
+
             networkData.setFilteredCluster([]);
             if (!String.prototype.startsWith) {
                 String.prototype.startsWith = function(searchString, position) {
@@ -1085,12 +1135,14 @@
              * replacing header and cell checkbox with custom styles.
              */
             $templateCache.put('ui-grid/selectionRowHeaderButtons',
-                "<div ng-show='(row.entity.is_contact == \"1\" && row.entity.source != \"3\") || (row.entity.is_contact == \"0\")' class=\"ui-grid-selection-row-header-buttons evy_myworld_sidebar_input\" ng-class=\"{'ui-grid-row-selected': row.isSelected}\"><input type=\"checkbox\" class=\"checkbox-custom\" name=\"country\" ng-model=\"row.isSelected\" ng-click=\"row.isSelected=!row.isSelected;selectButtonClick(row, $event);grid.appScope.tarckOfSelected(row.entity);\"><label class=\"checkbox-custom-label\">&nbsp;</label></div>"
+                "<div ng-show='(row.entity.is_contact == \"1\" && row.entity.source != \"3\") || (row.entity.is_contact == \"0\")' class=\"ui-grid-selection-row-header-buttons evy_myworld_sidebar_input\" ng-class=\"{'ui-grid-row-selected': row.isSelected}\"><input type=\"checkbox\" class=\"checkbox-custom\" name=\"country\" ng-model=\"row.isSelected\" ng-click=\"row.isSelected=!row.isSelected;selectButtonClick(row, $event);grid.appScope.trackOfSelected(row.entity);\"><label class=\"checkbox-custom-label\">&nbsp;</label></div>"
                 // "<div ng-show='(row.entity.is_contact==\"1\" && row.entity.source != \"3\")' class=\"ui-grid-selection-row-header-buttons evy_myworld_sidebar_input\" ng-class=\"{'ui-grid-row-selected': row.isSelected}\"><input type=\"checkbox\" class=\"checkbox-custom\" name=\"country\" ng-model=\"row.isSelected\" ng-click=\"row.isSelected=!row.isSelected;selectButtonClick(row, $event)\"><label class=\"checkbox-custom-label\">&nbsp;</label></div>"
             );
 
             $templateCache.put('ui-grid/selectionSelectAllButtons',
-                "<div class=\"ui-grid-selection-row-header-buttons evy_myworld_sidebar_input\" ng-class=\"{'ui-grid-all-selected': grid.selection.selectAll}\" ng-if=\"grid.options.enableSelectAll\"><input type=\"checkbox\" class=\"checkbox-custom\" name=\"country\" ng-model=\"grid.selection.selectAll\" ng-click=\"grid.selection.selectAll=!grid.selection.selectAll;headerButtonClick($event)\"><label class=\"checkbox-custom-label\">&nbsp;</label></div>"
+                "<div class=\"ui-grid-selection-row-header-buttons evy_myworld_sidebar_input\" ng-class=\"{'ui-grid-all-selected': grid.appScope.allSlct}\" ng-if=\"grid.options.enableSelectAll\"><input type=\"checkbox\" class=\"checkbox-custom\" name=\"country\" ng-model=\"grid.appScope.allSlct\" ng-click=\"grid.appScope.trackOfSelected('selectAll');\"><label class=\"checkbox-custom-label\">&nbsp;</label></div>"
+
+                //  "<div class=\"ui-grid-selection-row-header-buttons evy_myworld_sidebar_input\" ng-class=\"{'ui-grid-all-selected': grid.selection.selectAll}\" ng-if=\"grid.options.enableSelectAll\"><input type=\"checkbox\" class=\"checkbox-custom\" name=\"country\" ng-model=\"grid.selection.selectAll\" ng-click=\"grid.selection.selectAll=!grid.selection.selectAll;headerButtonClick($event);grid.appScope.trackOfSelected('selectAll');\"><label class=\"checkbox-custom-label\">&nbsp;</label></div>"
                 //"<div class=\"ui-grid-selection-row-header-buttons \" ng-class=\"{'ui-grid-all-selected': grid.selection.selectAll}\" ng-if=\"grid.options.enableSelectAll\"><input style=\"margin: 0; vertical-align: middle\" type=\"checkbox\" ng-model=\"grid.selection.selectAll\" ng-click=\"grid.selection.selectAll=!grid.selection.selectAll;headerButtonClick($event)\"></div>"
             );
 
@@ -1108,37 +1160,36 @@
                 enableCellEdit: false,
                 enableRowSelection: false,
                 enableColumnResizing: false,
-                cellTemplate: 
-                    '<div>' +
-                        '<div ng-hide="(row.entity.is_contact == \'1\') && (row.entity.source ==\'3\')" class="btn_edit grid_btn_position" ng-click="grid.appScope.editContact(row.entity)" title="Edit"><i></i></div>' +
-                        '<div ng-if="(row.entity.is_contact == \'1\') && (row.entity.source !=\'3\')" class="evy_rltn_icon8 grid_btn_position" ng-click="grid.appScope.openDeleteModal(row.entity)" title="Delete"><i></i></div>' +
-                    '</div>'+
+                cellTemplate: '<div>' +
+                    '<div ng-hide="(row.entity.is_contact == \'1\') && (row.entity.source ==\'3\')" class="btn_edit grid_btn_position" ng-click="grid.appScope.editContact(row.entity)" title="Edit"><i></i></div>' +
+                    '<div ng-if="(row.entity.is_contact == \'1\') && (row.entity.source !=\'3\')" class="evy_rltn_icon8 grid_btn_position" ng-click="grid.appScope.openDeleteModal(row.entity)" title="Delete"><i></i></div>' +
+                    '</div>' +
 
                     '<!-- Envoy user, Not Connection -->' +
                     '<div title="Envoy User" ng-click="grid.appScope.redirectTo(\'profile/\' + row.entity.user_id)" ng-if="(!row.entity.is_duplicate) && (row.entity.is_contact == \'1\') && (row.entity.connect == \'C\')" class="evy_rltn_icon12">' +
-                        '<i></i>' +
+                    '<i></i>' +
                     '</div>' +
 
                     '<!-- Connection -->' +
                     '<div ng-if="(row.entity.is_contact == \'0\')" title="Connection" ng-click="grid.appScope.redirectTo(\'profile/\' + row.entity.user_id)"  class="evy_rltn_icon13">' +
-                        '<i></i>' +
+                    '<i></i>' +
                     '</div>' +
 
                     '<!-- Connection update-->' +
                     '<div ng-if="((row.entity.is_contact == \'1\') && (row.entity.source ==\'3\'))" title="Connection Update" ng-click="grid.appScope.redirectTo(\'profile/\' + row.entity.user_id)"  class="contactevy">' +
-                        '<i></i>' +
+                    '<i></i>' +
                     '</div>' +
 
                     '<!-- Duplicate -->' +
                     '<div ng-if="(row.entity.is_contact != \'0\') && (row.entity.is_duplicate) && (row.entity.source !=\'3\')" class="evy_rltn_icon11" title="Duplicate">' +
-                        '<i></i>' +
+                    '<i></i>' +
                     '</div>',
 
             }, {
                 name: 'first_name',
                 displayName: 'First Name',
                 headerTooltip: 'First Name',
-                cellEditableCondition : function(scope){
+                cellEditableCondition: function(scope) {
                     return ((scope.row.entity.is_contact == '0') || (scope.row.entity.is_contact == '1' && scope.row.entity.source != '3'));
                 },
                 sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
@@ -1159,7 +1210,7 @@
                 name: 'last_name',
                 displayName: 'Last Name',
                 headerTooltip: 'Last Name',
-                cellEditableCondition : function(scope){
+                cellEditableCondition: function(scope) {
                     return ((scope.row.entity.is_contact == '0') || (scope.row.entity.is_contact == '1' && scope.row.entity.source != '3'));
                 },
                 sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
@@ -1177,7 +1228,7 @@
                 name: 'title',
                 displayName: 'Title',
                 headerTooltip: 'Title',
-                cellEditableCondition : function(scope){
+                cellEditableCondition: function(scope) {
                     return ((scope.row.entity.is_contact == '0') || (scope.row.entity.is_contact == '1' && scope.row.entity.source != '3'));
                 },
                 sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
@@ -1199,7 +1250,7 @@
                 name: 'company_name',
                 displayName: 'Company',
                 headerTooltip: 'Company',
-                cellEditableCondition : function(scope){
+                cellEditableCondition: function(scope) {
                     return ((scope.row.entity.is_contact == '0') || (scope.row.entity.is_contact == '1' && scope.row.entity.source != '3'));
                 },
                 sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
@@ -1212,7 +1263,7 @@
                 name: 'country',
                 headerTooltip: 'Country',
                 displayName: 'Country',
-                cellEditableCondition : function(scope){
+                cellEditableCondition: function(scope) {
                     return ((scope.row.entity.is_contact == '0') || (scope.row.entity.is_contact == '1' && scope.row.entity.source != '3'));
                 },
                 sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
@@ -1223,7 +1274,25 @@
                     '</div>',
                 minWidth: 100,
                 maxWidth: 100,
-            }];
+            }, {
+                name: 'city',
+                displayName: 'City',
+                headerTooltip: 'City',
+                cellEditableCondition: function(scope) {
+                    return ((scope.row.entity.is_contact == '0') || (scope.row.entity.is_contact == '1' && scope.row.entity.source != '3'));
+                },
+                sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
+                cellTemplate: '<span style="cursor:pointer" ng-click="grid.appScope.editGridContact(row.entity)">' +
+                    '<span ng-bind="row.entity.city"></span>' +
+                    '</span>',
+                editableCellTemplate: "<div>" +
+                    "<form name=\"inputForm\"><input type=\"INPUT_TYPE\" ng-class=\"'colt' + col.uid\" ui-grid-editor ng-model=\"MODEL_COL_FIELD\" maxlength=\"50\" ng-required=\"!row.entity.city\">" +
+                    "<div ng-show=\"!inputForm.$valid\">" +
+                    "<span class=\"error\" style=\"color:red\"></span>" +
+                    "</div>" +
+                    "</form>" +
+                    "</div>",
+            }, ];
 
             vm.gridOptions = {
                 columnDefs: columnDefs,
@@ -1261,11 +1330,11 @@
                 }
             }
             vm.redirectTo = function(url) {
-                    $location.path(url)
-                }
-                /* 
-                 * registering grid
-                 */
+                $location.path(url)
+            }
+            /* 
+             * registering grid
+             */
             vm.gridOptions.onRegisterApi = function(gridApi) {
 
                 vm.gridApi = gridApi;
@@ -1273,7 +1342,7 @@
                  * Calling on grid pagination change
                  */
                 gridApi.pagination.on.paginationChanged($scope, function(newPage, pageSize) {
-                    localStorage.setItem("Overview_pagination_limit",pageSize); //By setting this value the page size will be remained while opening the vault page.
+                    localStorage.setItem("Overview_pagination_limit", pageSize); //By setting this value the page size will be remained while opening the vault page.
                     limit = vm.gridOptions.paginationPageSize;
                     vm.gridOptions.paginationPageSize = limit;
                     vm.gridOptions.minRowsToShow = limit;
@@ -1284,6 +1353,7 @@
                     index = (paginationOptions.pageNumber - 1) * paginationOptions.pageSize;
                     vm.gridOptions.data = [];
                     contactsBusy = false;
+
                     getContacts(index, limit);
                 });
                 /*
