@@ -162,6 +162,12 @@
                             if (vm.viewMode == 'grid') {
                                 vm.gridOptions.totalItems = reply.count;
                                 vm.gridOptions.data = angular.copy(reply.result);
+                                var z = 1;
+                                _.each(vm.gridOptions.data,function(cntct){
+                                    cntct.city = "city " + z;
+                                    z++;
+                                    cntct.clusters = ['abcd','efgh','qwe234','zzasw']
+                                })
                                 /**
                                  * This function checks weather previously any contact selected on the page by looping through the currentlySelectedContacts array which containg all the selected 
                                  * contacts.on matching of the contacts it selects the check box of the corresponding row.
@@ -1274,25 +1280,31 @@
                     '</div>',
                 minWidth: 100,
                 maxWidth: 100,
-            }, {
-                name: 'city',
-                displayName: 'City',
-                headerTooltip: 'City',
-                cellEditableCondition: function(scope) {
-                    return ((scope.row.entity.is_contact == '0') || (scope.row.entity.is_contact == '1' && scope.row.entity.source != '3'));
-                },
+            },{
+            name: 'city',
+            displayName: 'City',
+            headerTooltip: 'City',
+            cellEditableCondition: function(scope) {
+                return ((scope.row.entity.is_contact == '0') || (scope.row.entity.is_contact == '1' && scope.row.entity.source != '3'));
+            },
+            sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
+            editableCellTemplate: "<div>" +
+                "<form name=\"inputForm\"><input type=\"INPUT_TYPE\" ng-class=\"'colt' + col.uid\" ui-grid-editor ng-model=\"MODEL_COL_FIELD\" maxlength=\"128\">" +
+                "<div ng-show=\"!inputForm.$valid\">" +
+                "<span class=\"error\" style=\"color:red\"></span>" +
+                "</div>" +
+                "</form>" +
+                "</div>",
+        },{
+                name: 'clusters',
+                displayName: 'Clusters',
+                headerTooltip: 'Clusters',
+                enableCellEdit: false,
                 sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
-                cellTemplate: '<span style="cursor:pointer" ng-click="grid.appScope.editGridContact(row.entity)">' +
-                    '<span ng-bind="row.entity.city"></span>' +
-                    '</span>',
-                editableCellTemplate: "<div>" +
-                    "<form name=\"inputForm\"><input type=\"INPUT_TYPE\" ng-class=\"'colt' + col.uid\" ui-grid-editor ng-model=\"MODEL_COL_FIELD\" maxlength=\"50\" ng-required=\"!row.entity.city\">" +
-                    "<div ng-show=\"!inputForm.$valid\">" +
-                    "<span class=\"error\" style=\"color:red\"></span>" +
-                    "</div>" +
-                    "</form>" +
-                    "</div>",
-            }, ];
+                cellTemplate: '<span style="cursor:pointer">' +
+                '<span style="display:inline;padding:5px;" ng-repeat="clstr in row.entity.clusters">{{clstr}},</span>' +
+                '</span>',
+            } ];
 
             vm.gridOptions = {
                 columnDefs: columnDefs,
