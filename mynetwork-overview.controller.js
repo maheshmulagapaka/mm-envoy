@@ -166,37 +166,14 @@
                                 _.each(vm.gridOptions.data,function(cntct){
                                     cntct.city = "city " + z;
                                     z++;
-                                    cntct.clusters = ['abcd','efgh','qwe234','zzasw']
+                                    cntct.clusters = ['abcd','efgh','qwe234','zzasw','qwend','mnhgf','aleyr']
                                 })
                                 /**
-                                 * This function checks weather previously any contact selected on the page by looping through the currentlySelectedContacts array which containg all the selected 
+                                 * This function checks weather previously any contact is selected on the page by looping through the currentlySelectedContacts array which containg all the selected 
                                  * contacts.on matching of the contacts it selects the check box of the corresponding row.
                                  */
                                 $timeout(function() {
-                                    if (selectAllContacts) {
-                                        if (currentlySelectedContacts.length) {
-                                            vm.gridApi.selection.selectAllRows();
-                                            _.each(vm.gridOptions.data, function(contact, index) {
-                                                _.each(currentlySelectedContacts, function(seleCont) {
-                                                    if (contact.contact_id == seleCont.contact_id) {
-                                                        //it makes the contact unselected based on the index value.
-                                                        vm.gridApi.selection.unSelectRow(vm.gridOptions.data[index]);
-                                                    }
-                                                })
-                                            })
-                                        } else {
-                                            vm.gridApi.selection.selectAllRows();
-                                        }
-                                    } else if (currentlySelectedContacts.length) {
-                                        _.each(vm.gridOptions.data, function(contact, index) {
-                                            _.each(currentlySelectedContacts, function(seleCont) {
-                                                if (contact.contact_id == seleCont.contact_id) {
-                                                    //it makes the contact selected based on the index value.
-                                                    vm.gridApi.selection.selectRow(vm.gridOptions.data[index]);
-                                                }
-                                            })
-                                        })
-                                    }
+                                    checkRetrivedData();
                                 });
                             } else {
                                 if (index == 0) vm.contacts = reply.result
@@ -215,7 +192,36 @@
                         contactsBusy = false;
                         vm.loading = false;
                     });
-        }
+        };
+
+        function checkRetrivedData(){
+
+            if (selectAllContacts) {
+                if (currentlySelectedContacts.length) {
+                    vm.gridApi.selection.selectAllRows();
+                    _.each(vm.gridOptions.data, function(contact, index) {
+                        _.each(currentlySelectedContacts, function(seleCont) {
+                            if (contact.contact_id == seleCont.contact_id) {
+                                //it makes the contact unselected based on the index value.
+                                vm.gridApi.selection.unSelectRow(vm.gridOptions.data[index]);
+                            }
+                        })
+                    })
+                } else {
+                    vm.gridApi.selection.selectAllRows();
+                }
+            } else if (currentlySelectedContacts.length) {
+                _.each(vm.gridOptions.data, function(contact, index) {
+                    _.each(currentlySelectedContacts, function(seleCont) {
+                        if (contact.contact_id == seleCont.contact_id) {
+                            //it makes the contact selected based on the index value.
+                            vm.gridApi.selection.selectRow(vm.gridOptions.data[index]);
+                        }
+                    })
+                })
+            }
+
+        };
 
         /*to hide coachmark*/
         function hideCoachMark() {
@@ -331,7 +337,7 @@
                 }
             } else {
                 vm.allSlct = false;
-                var found = _.findWhere(currentlySelectedContacts, {
+                var found = _.findWhere(currentlySelectedContacts, {    
                     contact_id: entity.contact_id
                 });
                 if (found) {
@@ -341,7 +347,7 @@
                 console.log(currentlySelectedContacts)
 
                 //If all the contacts of current page and no contacts in currentlySelectedContacts array then the headrow's checkbox will be selected
-                if (!currentlySelectedContacts.length && vm.gridApi.selection.getSelectedRows().length == vm.gridOptions.data.length)
+                if (!currentlySelectedContacts.length && vm.gridApi.selection.getSelectedRows().length == vm.gridOptions.data.length || currentlySelectedContacts.length == vm.totalNetworkCount)
                     vm.allSlct = true;
             }
         }
@@ -476,7 +482,6 @@
                         vm.gridApi.selection.clearSelectedRows();
                         $timeout(function() {
                             vm.count = vm.gridApi.grid.renderContainers.body.renderedRows.length;
-                            //console.log(vm.gridApi.core.getVisibleRows(vm.gridApi.grid));
                             vm.totalNetworkCount = totalNetworkCount - deletingIds.contact_ids.length;
                             totalNetworkCount = vm.totalNetworkCount;
                             /*If all the contacts are deleted in current page it calls for the rest of the contacts.*/
@@ -1301,11 +1306,13 @@
                 headerTooltip: 'Clusters',
                 enableCellEdit: false,
                 sortDirectionCycle: [uiGridConstants.ASC, uiGridConstants.DESC],
-                cellTemplate: '<span style="cursor:pointer">' +
+                cellTemplate: '<span  style="cursor:pointer" ng-mouseenter="grid.appScope.showAllClusters(row.entity)" ng-mouseleave="grid.appScope.showAllClusters(row.entity)">' +
                 '<span style="display:inline;padding:5px;" ng-repeat="clstr in row.entity.clusters">{{clstr}},</span>' +
-                '</span>',
+                '</span>' +
+                '<div ng-if="row.entity.allClusterData" style="position: absolute;border: 1px solid;padding: 10px;background: white;width:180px;word-wrap: break-word;">{{row.entity.allClusterData}}<div>',
+                
             } ];
-
+                
             vm.gridOptions = {
                 columnDefs: columnDefs,
                 rowHeight: 30,
@@ -1320,6 +1327,7 @@
                 useExternalPagination: true,
                 useExternalSorting: true,
                 totalItems: 0,
+                
             };
 
             /* setting grid scope to app scope
@@ -1343,6 +1351,16 @@
             }
             vm.redirectTo = function(url) {
                 $location.path(url)
+            }
+            vm.showAllClusters = function(entity,item){
+                if(!entity.allClusterData){
+                    entity.allClusterData = "";
+                    _.each(entity.clusters,function(clstr){
+                        entity.allClusterData =  entity.allClusterData +','+ clstr;
+                    })
+                }                
+                else
+                    delete  entity.allClusterData;
             }
             /* 
              * registering grid
