@@ -1,3 +1,9 @@
+/**
+ * pagination select all option and some other functionalityis made by Mahesh.
+ */
+
+
+
 (function() {
     'use strict';
     angular
