@@ -14,7 +14,7 @@
     MynetworkOverviewController.$inject = ['$rootScope', '$scope', '$templateCache', 'uiGridConstants', 'lookupData', 'contactService', 'eyconstants', '$uibModal', 'relationshipsData', 'ActivityModal', '$location', '$timeout', 'authService', 'networkData', 'networkService', 'profileData'];
 
     function MynetworkOverviewController($rootScope, $scope, $templateCache, uiGridConstants, lookupData, contactService, eyconstants, $uibModal, relationshipsData, ActivityModal, $location, $timeout, authService, networkData, networkService, profileData) {
-
+        var x = "got this";
         var vm = this;
         vm.gotIt = gotIt;
         vm.hideCoachMark = hideCoachMark;
