@@ -3,9 +3,6 @@ Comments changed...
 */
 
 
-/*feature Branch1*/
-
-/*changes in branch2*/
 (function() {
     'use strict';
     angular
