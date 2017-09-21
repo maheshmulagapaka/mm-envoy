@@ -1,7 +1,5 @@
-/**
- * Pagination select all option and some other functionalityis made by Mahesh.
- * And majour part is written by Nikhil
- */
+
+
 
 
 
